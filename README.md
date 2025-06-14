@@ -13,7 +13,7 @@ This project is a dynamic web application developed for the AltSchool Second Sem
 
 You can access the live application at the following address:
 
-**Live URL:** [**www.tnkma.com.ng**](https://www.google.com/search?q=http://www.tnkma.com.ng)
+**Live URL:** [**www.tnkma.com.ng**](https://www.tnkma.com.ng)
 
 -----
 
@@ -85,7 +85,7 @@ This project was deployed by following a structured workflow, from server provis
 
 ## 🧪 How to Test the Application
 
-1.  Navigate to the live URL: [**www.tnkma.com.ng**](https://www.google.com/search?q=http://www.tnkma.com.ng)
+1.  Navigate to the live URL: [**www.tnkma.com.ng**](https://www.tnkma.com.ng)
 2.  Fill out the feedback form with your name, email, and a message.
 3.  Click **Submit**.
 4.  You can also use the contact form  to send us a message or subscribe to the newsletter.
