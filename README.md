@@ -1,6 +1,3 @@
-Of course. Here is a professionally written `README.md` based on the information you provided.
-
------
 
 # 🌐 AltSchool Second Semester Exam – Dynamic Landing page
 
