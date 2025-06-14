@@ -1,63 +1,156 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>John Doe | Lead Cloud Engineer</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-</head>
-<body class="bg-grey-100">
+{% extends "base.html" %}
+{% block title %}Home Page{% endblock %}
 
-  <!-- Navigation Header -->
-  <header class="bg-white shadow-md p-4">
-    <div class="container mx-auto flex justify-between items-center">
-      <h1 class="text-2xl font-bold">John Doe</h1>
-      <nav class="space-x-4">
-        <a href="#hero" class="hover:underline">Home</a>
-        <a href="#bio" class="hover:underline">About</a>
-        <a href="#project_description" class="hover:underline">Project</a>
-        <a href="#blog" class="hover:underline">Blog</a>
-        <a href="#contact" class="hover:underline">Contact</a>
-      </nav>
-    </div>
-  </header>
+{% block content %}
 
-  <!-- Hero Section -->
-  <section class="bg-blue-600 text-white text-center py-20" id="hero">
-    <h2 class="text-4xl font-bold">Welcome to My Landing Page</h2>
-    <p class="mt-4 text-lg">
-      Discover my latest project and learn more about my background as a tech leader and cloud engineer.
+<!-- Hero Section -->
+<section class="bg-blue-600 text-white text-center py-20 rounded" id="hero" style="font-family: 'Nunito', sans-serif;">
+  <h2 class="text-4xl md:text-5xl font-bold">Welcome to My Landing Page</h2>
+  <p class="mt-4 text-lg max-w-2xl mx-auto">
+    Hi, I'm <span class="font-semibold">Godswill Chimnonso</span>, a Cloud Engineer and Python Software Developer. I design scalable backend systems using tools like FastAPI, Django, and AWS. I'm passionate about solving real-world problems in healthcare and education through technology.
+  </p>
+  <p class="mt-4 text-lg max-w-2xl mx-auto">
+    Discover my latest project and learn more about my background as a tech leader and cloud engineer.
+  </p>
+</section>
+
+
+<!-- Project Section -->
+<section id="project_description" class="py-12 bg-white text-center">
+  <div class="max-w-4xl mx-auto px-4">
+    <h2 class="text-3xl font-bold text-blue-700 mb-4">🚀 Project: MediSync - Smart Medical Records</h2>
+    <p class="text-gray-700 text-base leading-relaxed">
+      MediSync is a cloud-based healthcare platform that enables smart, secure, and scalable patient record management.
+      It helps hospitals, clinics, and healthcare providers to streamline patient care, enable cross-institutional record access, and implement AI-assisted diagnosis.
     </p>
-  </section>
+    <div class="mt-8">
+      <a href="#project" class="inline-block bg-blue-600 text-white px-6 py-3 rounded hover:bg-blue-700 transition duration-200">
+        Learn More About MediSync
+      </a>    
+  </div>
+</section>
 
-  <!-- Project Section -->
-  <section id="project_description" class="py-12 bg-white text-center">
-    <div class="max-w-3xl mx-auto px-4">
-      <h2 class="text-2xl font-bold text-blue-700 mb-4">Project Title: The Future of AI-Powered Logistics</h2>
-      <p class="text-gray-700 text-base leading-relaxed">
-        This project aims to revolutionize the logistics industry by integrating AI technologies to optimize supply chain management, reduce costs, and enhance delivery efficiency. 
-        By leveraging machine learning algorithms, we can predict demand patterns and streamline operations, making logistics smarter and more responsive.
-      </p>
+<!-- Visitors Feedback Cards -->
+<section class="bg-gray-100 py-12">
+  <div class="max-w-6xl mx-auto px-4">
+    <h2 class="text-2xl font-bold text-center text-blue-700 mb-8">💬 What People Are Saying</h2>
+    <div class="grid md:grid-cols-3 sm:grid-cols-2 gap-6">
+      {% for feedback in feedbacks %}
+      <div class="bg-white shadow-md rounded-lg p-4">
+        <h3 class="text-lg font-semibold text-gray-800">{{ feedback.name }}</h3>
+        <p class="text-gray-600 mt-2">{{ feedback.feedback }}</p>
+      </div>
+      {% endfor %}
     </div>
-  </section>
+  </div>
+</section>
 
-  <!-- Bio Section -->
-  <section id="bio" class="py-12 bg-gray-100 text-center">
-    <div class="max-w-3xl mx-auto px-4">
-      <h2 class="text-2xl font-bold text-blue-700 mb-4">Professional Bio</h2>
-      <p class="text-gray-700 text-base leading-relaxed">
-        I am a Lead Cloud Engineer with over 10 years of experience in cloud computing and software development. 
-        My expertise includes designing scalable cloud architectures, implementing DevOps practices, and leading cross-functional teams. 
-        I have successfully delivered projects in various domains, including e-commerce, healthcare, and finance. 
-        I hold a Master's degree in Computer Science from XYZ University.
-      </p>
-    </div>
-  </section>
+<!-- Bio Section -->
+<section id="bio" class="py-12 bg-white text-center">
+  <div class="max-w-4xl mx-auto px-4">
+    <h2 class="text-2xl font-bold text-blue-700 mb-4">👨‍💻 Professional Bio</h2>
+    <p class="text-gray-700 leading-relaxed">
+      I am a Lead Cloud Engineer with years of experience in cloud computing and software development.
+      I specialize in designing scalable cloud systems, implementing DevOps workflows, and leading cross-functional teams across industries like healthcare, e-commerce, and finance.
+    </p>
+  </div>
+</section>
 
-  <!-- Footer -->
-  <footer class="bg-blue-600 text-white py-4 text-center">
-    <p>&copy; 2025 John Doe. All rights reserved.</p>
-  </footer>
+<!-- Write Us Feedback Section -->
+<section class="py-12 bg-blue-50">
+  <div class="max-w-3xl mx-auto px-4 text-center">
+    <h2 class="text-2xl font-bold text-blue-800 mb-6">📝 Share Your Thoughts</h2>
+    <p class="mb-6 text-gray-600">What do you think about our MediSync project? We'd love to hear from you!</p>
 
-</body>
-</html>
+    {% if success %}
+  <div class="mb-6 p-4 bg-green-100 text-green-800 rounded border border-green-300">
+    ✅ Thank you for your feedback!
+  </div>
+{% endif %}
+
+
+    <form method="post" action="/feedback" class="bg-white shadow-md rounded-lg p-6 space-y-4">
+      <input
+        type="text"
+        name="name"
+        placeholder="Your Name"
+        required
+        class="w-full p-2 border border-gray-300 rounded"
+      />
+      <input
+        type="email"
+        name="email"
+        placeholder="Your Email"
+        required
+        class="w-full p-2 border border-gray-300 rounded"
+      />
+      <textarea
+        name="message"
+        placeholder="Your Feedback"
+        required
+        rows="4"
+        class="w-full p-2 border border-gray-300 rounded"
+      ></textarea>
+      <button
+        type="submit"
+        class="w-full bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700"
+      >
+        Submit Feedback
+      </button>
+    </form>
+  </div>
+</section>
+
+<!-- Newsletter Modal -->
+<div id="newsletter-modal" class="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 hidden">
+  <div class="bg-white p-6 rounded-lg shadow-lg w-full max-w-md relative">
+    <button id="close-modal" class="absolute top-2 right-2 text-gray-500 hover:text-black text-2xl">&times;</button>
+    <h2 class="text-xl font-semibold mb-4">Subscribe to our Newsletter</h2>
+    <p class="mb-4 text-gray-700">
+      Stay updated on our latest innovations and tech insights. Enter your details below to subscribe.
+    </p>
+    <form method="post" action="/newsletter">
+      <input
+        type="text"
+        name="name"
+        placeholder="Your Name"
+        required
+        class="w-full p-2 border border-gray-300 rounded mb-3"
+      />
+      <input
+        type="email"
+        name="email"
+        placeholder="Your Email"
+        required
+        class="w-full p-2 border border-gray-300 rounded mb-4"
+      />
+      <button
+        type="submit"
+        class="w-full bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+      >
+        Subscribe
+      </button>
+    </form>
+  </div>
+</div>
+
+<!-- Newsletter popup logic -->
+<script>
+  window.addEventListener("DOMContentLoaded", () => {
+    const modal = document.getElementById("newsletter-modal");
+    const closeBtn = document.getElementById("close-modal");
+
+    if (!localStorage.getItem("newsletterShown")) {
+      setTimeout(() => {
+        modal.classList.remove("hidden");
+        localStorage.setItem("newsletterShown", "true");
+      }, 5000);
+    }
+
+    closeBtn.addEventListener("click", () => {
+      modal.classList.add("hidden");
+    });
+  });
+</script>
+
+{% endblock %}
