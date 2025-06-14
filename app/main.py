@@ -1,52 +1,65 @@
 from typing import Union
-from fastapi import FastAPI, Request, Form, Depends
-from fastapi.responses import HTMLResponse
+from fastapi import FastAPI, Request, Form, Depends, status
+from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from app.database import SessionLocal, Base, engine
 from sqlalchemy.orm import Session
 import app.models as models
 from app.utils import send_email
 import re
+from starlette.middleware.sessions import SessionMiddleware
 
 
-# Create the database tables
-Base.metadata.create_all(bind=engine)
+
+
+# Initialize app and templates
 app = FastAPI()
+templates = Jinja2Templates(directory="app/templates")
+app.add_middleware(SessionMiddleware, secret_key="our-secret-key")
 
-template = Jinja2Templates(directory="app/templates")
+# Create DB tables.
+Base.metadata.create_all(bind=engine)
 
-# Get db session
+# Dependency: DB session
 def get_database():
-    """ Get a database session."""
     db = SessionLocal()
     try:
         yield db
     finally:
         db.close()
-    
+
+# ----------------------------------------
+# HOME PAGE
+# ----------------------------------------
 @app.get("/", response_class=HTMLResponse)
-async def homepage(request: Request, db: Session = Depends(get_database)):
-    feedbacks = (
-        db.query(models.Feedback)
-        .order_by(models.Feedback.id.desc())
-        .limit(3)
-        .all()
-    )
-    return template.TemplateResponse("index.html", {
+async def home(request: Request, db: Session = Depends(get_database)):
+    feedbacks = db.query(models.Feedback).order_by(models.Feedback.id.desc()).limit(3).all()
+
+    newsletter_error = request.session.pop("newsletter_error", None)
+    newsletter_success = request.session.pop("newsletter_success", None)
+
+    feedback_success = request.session.pop("feedback_success", None)
+
+    show_modal = True if newsletter_error or newsletter_success else False
+    show_feedback_modal = request.query_params.get("show_feedback_modal", None)
+
+    return templates.TemplateResponse("index.html", {
         "request": request,
-        "feedbacks": feedbacks
+        "feedbacks": feedbacks,
+        "error": newsletter_error,
+        "success": newsletter_success,
+        "show_modal": show_modal,
+        "feedback_success": feedback_success,
+        "show_feedback_modal": show_feedback_modal
     })
 
 
-
-
-# Show contact form
+# ----------------------------------------
+# CONTACT PAGE
+# ----------------------------------------
 @app.get("/contact", response_class=HTMLResponse)
 async def contact_form(request: Request):
-    """ Display the contact form page."""
-    return template.TemplateResponse("contact.html", {"request": request, "title": "Contact Us"})
-
-
+    return templates.TemplateResponse("contact.html", {"request": request})
 
 @app.post("/contact", response_class=HTMLResponse)
 async def contact(
@@ -56,24 +69,34 @@ async def contact(
     message: str = Form(...),
     db: Session = Depends(get_database)
 ):
-    # Save to database
+    # Save contact info
     new_contact = models.Contact(name=name, email=email, message=message)
     db.add(new_contact)
     db.commit()
-    db.refresh(new_contact)
 
-    # Send email
-    send_email(name, email, message)
+    # Send emails (admin + thank you)
+    await send_email(
+        subject=f"📬 New Contact Message from {name}",
+        body=f"Name: {name}\nEmail: {email}\nMessage:\n{message}",
+        to_email="youradminemail@gmail.com"
+    )
+    await send_email(
+        subject="✅ Thanks for Contacting Us!",
+        body=f"Hi {name},\n\nThank you for reaching out. We’ll get back to you soon!\n\n– Tnkma Team",
+        to_email=email
+    )
 
-    return template.TemplateResponse("contact.html", {
+    return templates.TemplateResponse("contact.html", {
         "request": request,
+        "success": True,
         "name": name,
         "email": email,
-        "message": message,
-        "success": True
+        "message": message
     })
 
-    
+# ----------------------------------------
+# NEWSLETTER
+# ------------------------------------
 
 @app.post("/newsletter", response_class=HTMLResponse)
 async def newsletter(
@@ -82,50 +105,35 @@ async def newsletter(
     email: str = Form(...),
     db: Session = Depends(get_database)
 ):
-    # Validate name
+    # Basic validation
     if len(name.strip()) < 2:
-        return template.TemplateResponse("index.html", {
-            "request": request,
-            "error": "Name is too short.",
-            # force modal to open again
-            "show_modal": True  
-        })
+        request.session["newsletter_error"] = "Name is too short."
+        return RedirectResponse(
+            url="/?show_modal=True", status_code=status.HTTP_303_SEE_OTHER
+    )
 
-    # Validate email
     if not re.match(r"[^@]+@[^@]+\.[^@]+", email):
-        return template.TemplateResponse("index.html", {
-            "request": request,
-            "error": "Invalid email format.",
-            "show_modal": True
-        })
+        request.session["newsletter_error"] = "Invalid email format."
+        return RedirectResponse(url="/?show_modal=True", status_code=status.HTTP_303_SEE_OTHER)
 
     # Check if email already exists
-    try:
-        existing = db.query(models.Newsletter).filter(models.Newsletter.email == email).first()
-        if existing:
-            return template.TemplateResponse("index.html", {
-                "request": request,
-                "error": "Email already subscribed.",
-                "show_modal": True
-            })
-    except Exception as e:
-        return template.TemplateResponse("index.html", {
-            "request": request,
-            "error": f"Database error: {str(e)}",
-            "show_modal": True
-        })
+    existing = db.query(models.Newsletter).filter(models.Newsletter.email == email).first()
+    if existing:
+        request.session["newsletter_error"] = "Email already subscribed."
+        return RedirectResponse(url="/?show_modal=True", status_code=status.HTTP_303_SEE_OTHER)
 
-    # Save new subscriber
+    # Save subscriber
     new_subscriber = models.Newsletter(name=name, email=email)
     db.add(new_subscriber)
     db.commit()
 
-    return template.TemplateResponse("index.html", {
-        "request": request,
-        "success": "Thanks for subscribing!",
-        "show_modal": True
-    })
+    request.session["newsletter_success"] = "Thanks for subscribing!"
+    return RedirectResponse(url="/?show_modal=True", status_code=status.HTTP_303_SEE_OTHER)
 
+
+# ----------------------------------------
+# FEEDBACK
+# ----------------------------------------
 @app.post("/feedback", response_class=HTMLResponse)
 async def handle_feedback(
     request: Request,
@@ -134,29 +142,23 @@ async def handle_feedback(
     message: str = Form(...),
     db: Session = Depends(get_database)
 ):
-    # 1. Save feedback to DB
     new_feedback = models.Feedback(name=name, email=email, feedback=message)
     db.add(new_feedback)
     db.commit()
 
-    # 2. Email notification to YOU
     await send_email(
         subject="📬 New Feedback Received",
         body=f"Name: {name}\nEmail: {email}\nMessage:\n{message}",
-        to_email="youradminemail@gmail.com"
+        to_email="onwusilikenonso@gmail.com"
     )
 
-    # 3. Thank-you email to the visitor
     await send_email(
         subject="🙏 Thank You for Your Feedback!",
-        body=f"Hi {name},\n\nThank you for your kind feedback. We appreciate your time and support!\n\n– Team MediSync",
+        body=f"Hi {name},\n\nThank you for your kind feedback. We appreciate your time and support!\n\n– Team Tnkma",
         to_email=email
     )
 
-    return template.TemplateResponse("index.html", {
-        "request": request,
-        "name": name,
-        "email": email,
-        "feedback": message,
-        "success": True
-    })
+    # Flash session message
+    request.session["feedback_success"] = "✅ Thank you for your feedback!"
+    return RedirectResponse(url="/?show_feedback_modal=true", status_code=status.HTTP_303_SEE_OTHER)
+

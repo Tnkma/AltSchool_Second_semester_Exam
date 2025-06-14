@@ -11,4 +11,5 @@ class NewsletterBase(BaseModel):
 
 class FeedbackBase(BaseModel):
     name: str
+    email: EmailStr
     feedback: str
