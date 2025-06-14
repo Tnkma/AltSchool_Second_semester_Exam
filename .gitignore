@@ -2,9 +2,7 @@
 # Ignore environment variable files
 .env
 
-
-# Ignore compiled Python files
-__pycache__/
+__pycache__
 *.pyc
 
 
