@@ -1,6 +1,10 @@
 import os
 import requests
+import re
 from dotenv import load_dotenv
+from typing import List
+from typing import Optional
+from fastapi import Request
 
 # Option 1: .env inside this file's directory
 env_path_local = os.path.join(os.path.dirname(__file__), '.env')
@@ -51,3 +55,56 @@ async def send_email(subject: str, body: str, to_email: str):
         print("❌ Failed to send email:", response.text)
     else:
         print("✅ Email sent successfully!")
+
+
+# Validation Class
+class InputForm:
+    def __init__(self, request: Request):
+        # print("Initializing InputForm...")
+        self.request: Request = request
+        self.errors: List = []
+        self.name: Optional[str] = None
+        self.email: Optional[str] = None
+        self.message: Optional[str] = None
+        self.feedback: Optional[str] = None
+        
+        
+    async def load_data(self):
+        form = await self.request.form()
+        self.name = form.get("name")
+        self.email = form.get("email")
+        self.feedback = form.get("feedback")
+        self.message = form.get("message")
+        
+    
+    def is_valid(self):
+        # Reset errors
+        self.errors = []
+        if not self.name or len(self.name.strip().split()) < 2:
+            self.errors.append("Use at least two names (e.g., first and last name).")
+
+        # Email validation
+        if not self.email or not re.match(
+            r"^[\w\.-]+@[\w\.-]+\.\w{2,}$", 
+            self.email
+        ):
+            self.errors.append("A valid email is required.")
+        if not (self.email.__contains__("gmail.com") or self.email.endswith("@gmail.com")
+        ):
+            self.errors.append("Email must be a Gmail address (ending with @gmail.com).")
+        
+        # Message validation
+        if self.message:
+            if len(self.message.strip()) < 10:
+                self.errors.append("Message must be at least 10 characters long.")
+            if len(self.message.strip()) > 200:
+                self.errors.append("Message is too long (max 200 characters).")
+            
+        # Feedback validation
+        if self.feedback:
+            if len(self.feedback.strip()) < 5:
+                self.errors.append("Feedback must be at least 5 characters long")
+            if len(self.feedback.strip()) > 500:
+                self.errors.append("Feedback is too long (max 500 characters).")
+        print("Validation errors:", self.errors)
+        return not self.errors

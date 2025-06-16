@@ -5,7 +5,7 @@ from fastapi.templating import Jinja2Templates
 from app.database import SessionLocal, Base, engine
 from sqlalchemy.orm import Session
 import app.models as models
-from app.utils import send_email
+from app.utils import InputForm, send_email
 import re
 from starlette.middleware.sessions import SessionMiddleware
 
@@ -69,30 +69,55 @@ async def contact(
     message: str = Form(...),
     db: Session = Depends(get_database)
 ):
-    # Save contact info
-    new_contact = models.Contact(name=name, email=email, message=message)
-    db.add(new_contact)
-    db.commit()
+    # Get validation first
+    form = InputForm(request)
+    await form.load_data()
+    
+    # Validate form data
+    if form.is_valid():
+        try:
+            # Save contact info
+            contact_us = models.Contact(
+                name=form.name, 
+                email=form.email,
+                message=form.message
+            )
+            db.add(contact_us)
+            # Commit to the database
+            db.commit()
+        
 
-    # Send emails (admin + thank you)
-    await send_email(
-        subject=f"📬 New Contact Message from {name}",
-        body=f"Name: {name}\nEmail: {email}\nMessage:\n{message}",
-        to_email="youradminemail@gmail.com"
-    )
-    await send_email(
-        subject="✅ Thanks for Contacting Us!",
-        body=f"Hi {name},\n\nThank you for reaching out. We’ll get back to you soon!\n\n– Tnkma Team",
-        to_email=email
-    )
+            # Send emails (admin + thank you)
+            await send_email(
+                subject=f"📬 New Contact Message from {form.name}",
+                body=f"Name: {form.name}\nEmail: {form.email}\nMessage:\n{form.message}",
+                to_email="onwusilikenonso@gmail.com"
+            )
+            await send_email(
+                subject="✅ Thanks for Contacting Us!",
+                body=f"Hi {form.name},\n\nThank you for reaching out. We’ll get back to you soon!\n\n– Tnkma Team",
+                to_email=form.email
+            )
+            return templates.TemplateResponse("contact.html", {
+            "request": request,
+            "success": True,
+            "errors": [],
+            "name": "",
+            "email": "",
+            "message": ""
+        })
+        except Exception as e:
+            print(e)
+            form.__dict__.get("error").append(" We got some errors")
 
     return templates.TemplateResponse("contact.html", {
-        "request": request,
-        "success": True,
-        "name": name,
-        "email": email,
-        "message": message
-    })
+    "request": request,
+    "success": False,
+    "errors": form.errors,
+    "name": form.name,
+    "email": form.email,
+    "message": form.message
+})
 
 # ----------------------------------------
 # NEWSLETTER
@@ -106,13 +131,13 @@ async def newsletter(
     db: Session = Depends(get_database)
 ):
     # Basic validation
-    if len(name.strip()) < 2:
-        request.session["newsletter_error"] = "Name is too short."
+    if not name or len(name.strip().split()) < 2:
+        request.session["newsletter_error"] = "Use at least two names (e.g., first and last name)."
         return RedirectResponse(
             url="/?show_modal=True", status_code=status.HTTP_303_SEE_OTHER
     )
 
-    if not re.match(r"[^@]+@[^@]+\.[^@]+", email):
+    if not re.match(r"[^@]+@[^@]+\.[^@]+", email) or not email.endswith("@gmail.com"):
         request.session["newsletter_error"] = "Invalid email format."
         return RedirectResponse(url="/?show_modal=True", status_code=status.HTTP_303_SEE_OTHER)
 
@@ -142,23 +167,50 @@ async def handle_feedback(
     message: str = Form(...),
     db: Session = Depends(get_database)
 ):
-    new_feedback = models.Feedback(name=name, email=email, feedback=message)
-    db.add(new_feedback)
-    db.commit()
+    # validate input
+    form = InputForm(request)
+    await form.load_data()
+    
+    if form.is_valid():
+        try:
+        
+            feedback = models.Feedback(
+                name=form.name,
+                email=form.email,
+                feedback=form.message
+            )
+            db.add(feedback)
+            db.commit()
 
-    await send_email(
-        subject="📬 New Feedback Received",
-        body=f"Name: {name}\nEmail: {email}\nMessage:\n{message}",
-        to_email="onwusilikenonso@gmail.com"
-    )
+            await send_email(
+                subject="📬 New Feedback Received",
+                body=f"Name: {name}\nEmail: {email}\nMessage:\n{message}",
+                to_email="onwusilikenonso@gmail.com"
+            )
 
-    await send_email(
-        subject="🙏 Thank You for Your Feedback!",
-        body=f"Hi {name},\n\nThank you for your kind feedback. We appreciate your time and support!\n\n– Team Tnkma",
-        to_email=email
-    )
+            await send_email(
+                subject="🙏 Thank You for Your Feedback!",
+                body=f"Hi {name},\n\nThank you for your kind feedback. We appreciate your time and support!\n\n– Team Tnkma",
+                to_email=email
+            )
+            # Flash session message
+            request.session["feedback_success"] = "✅ Thank you for your feedback!"
+            return RedirectResponse(url="/?show_feedback_modal=true", status_code=status.HTTP_303_SEE_OTHER)
+        except Exception as e:
+            print(e)
+            form.__dict__.get("error").append(" We got some errors")
+    
+    # If validation fails, return to the form with errors
+    return templates.TemplateResponse("index.html", {
+    "request": request,
+    "errors": form.errors,
+    "name": form.name,
+    "email": form.email,
+    "message": form.message,
+    "scroll_to_feedback": True,
+}, status_code=400)
 
-    # Flash session message
-    request.session["feedback_success"] = "✅ Thank you for your feedback!"
-    return RedirectResponse(url="/?show_feedback_modal=true", status_code=status.HTTP_303_SEE_OTHER)
+
+
+    
 

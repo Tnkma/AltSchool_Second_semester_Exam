@@ -56,11 +56,23 @@
   </div>
 </section>
 
+
 <!-- Write Us Feedback Section -->
-<section class="py-12 bg-blue-50">
+<section id="feedback" class="py-12 bg-blue-50">
   <div class="max-w-3xl mx-auto px-4 text-center">
     <h2 class="text-2xl font-bold text-blue-800 mb-6">📝 Share Your Thoughts</h2>
     <p class="mb-6 text-gray-600">What do you think about our MediSync project? We'd love to hear from you!</p>
+
+    <!-- Validation Error Box -->
+    {% if errors %}
+      <div class="mb-4 p-3 bg-red-100 text-red-700 border border-red-300 rounded text-left">
+        <ul class="list-disc pl-5">
+          {% for error in errors %}
+            <li>{{ error }}</li>
+          {% endfor %}
+        </ul>
+      </div>
+    {% endif %}
 
     <!-- Feedback Form -->
     <form method="post" action="/feedback" class="bg-white shadow-md rounded-lg p-6 space-y-4">
@@ -68,6 +80,7 @@
         type="text"
         name="name"
         placeholder="Your Name"
+        value="{{ name or '' }}"
         required
         class="w-full p-2 border border-gray-300 rounded"
       />
@@ -75,6 +88,7 @@
         type="email"
         name="email"
         placeholder="Your Email"
+        value="{{ email or '' }}"
         required
         class="w-full p-2 border border-gray-300 rounded"
       />
@@ -84,7 +98,7 @@
         required
         rows="4"
         class="w-full p-2 border border-gray-300 rounded"
-      ></textarea>
+      >{{ message or '' }}</textarea>
       <button
         type="submit"
         class="w-full bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700"
@@ -148,6 +162,12 @@
     </form>
   </div>
 </div>
+
+{% if scroll_to_feedback %}
+  <script>
+    window.location.hash = '#feedback';
+  </script>
+{% endif %}
 
 
 <!-- Newsletter popup logic -->
